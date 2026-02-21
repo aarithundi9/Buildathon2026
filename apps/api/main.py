@@ -74,7 +74,10 @@ async def create_run(req: CreateRunRequest):
 
     # Start simulation in background if a scenario is provided
     if req.scenario and req.scenario in SCENARIOS:
-        asyncio.create_task(run_simulation(run.run_id, req.scenario))
+        async def delayed_simulation(rid: str, scenario: str):
+            await asyncio.sleep(1.5)  # Give client time to connect WebSocket
+            await run_simulation(rid, scenario)
+        asyncio.create_task(delayed_simulation(run.run_id, req.scenario))
 
     return run.model_dump()
 

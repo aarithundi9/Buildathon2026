@@ -1,49 +1,78 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/layout/sidebar";
+import { useState, useMemo, useEffect } from "react";
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { TopNav } from "@/components/layout/top-nav";
+import { LatencyChart } from "@/components/dashboard/latency-chart";
+import { MetricsPanel } from "@/components/dashboard/metrics-panel";
+import { TraceTable } from "@/components/dashboard/trace-table";
+import { StatsBar } from "@/components/dashboard/stats-bar";
 import { useRuns } from "@/hooks/use-runs";
-import { Activity, ArrowRight } from "lucide-react";
+import { getRunSteps } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Step } from "@/types";
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { data: runs } = useRuns();
+  const { data: runs, isLoading } = useRuns();
+  const [allSteps, setAllSteps] = useState<Map<string, Step[]>>(new Map());
 
-  // Auto-select the first running or latest run
+  // Fetch steps for all runs
   useEffect(() => {
-    if (runs && runs.length > 0) {
-      const running = runs.find((r) => r.status === "running");
-      if (running) {
-        router.push(`/runs/${running.run_id}`);
-      }
-    }
-  }, [runs, router]);
+    if (!runs || runs.length === 0) return;
+
+    const fetchSteps = async () => {
+      const newMap = new Map<string, Step[]>();
+      await Promise.all(
+        runs.slice(0, 20).map(async (run) => {
+          try {
+            const steps = await getRunSteps(run.run_id);
+            newMap.set(run.run_id, steps);
+          } catch {
+            newMap.set(run.run_id, []);
+          }
+        })
+      );
+      setAllSteps(newMap);
+    };
+
+    fetchSteps();
+  }, [runs]);
+
+  const currentRuns = runs ?? [];
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <main className="flex flex-1 items-center justify-center bg-background">
-        <div className="text-center max-w-md">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mb-6">
-            <Activity className="h-10 w-10 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            Welcome to UAOP
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            Universal Agent Observability Platform
-          </p>
-          <p className="mt-4 text-sm text-muted-foreground/80">
-            Start a demo run from the sidebar to see real-time agent execution
-            traces, or select an existing run to inspect.
-          </p>
-          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <ArrowRight className="h-4 w-4" />
-            <span>Click "Start Demo Run" in the sidebar</span>
-          </div>
-        </div>
-      </main>
-    </div>
+    <>
+      <AppSidebar />
+      <div className="flex flex-1 flex-col min-w-0">
+        <TopNav />
+
+        <main className="flex-1 overflow-y-auto p-5 space-y-5">
+          {isLoading ? (
+            <div className="space-y-5">
+              <Skeleton className="h-16 rounded-lg" />
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+                <Skeleton className="h-[380px] rounded-lg" />
+                <Skeleton className="h-[380px] rounded-lg" />
+              </div>
+              <Skeleton className="h-[300px] rounded-lg" />
+            </div>
+          ) : (
+            <>
+              {/* Stats bar */}
+              <StatsBar runs={currentRuns} allSteps={allSteps} />
+
+              {/* Chart + Metrics panel */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+                <LatencyChart runs={currentRuns} allSteps={allSteps} />
+                <MetricsPanel runs={currentRuns} allSteps={allSteps} />
+              </div>
+
+              {/* Trace runs table */}
+              <TraceTable runs={currentRuns} allSteps={allSteps} />
+            </>
+          )}
+        </main>
+      </div>
+    </>
   );
 }

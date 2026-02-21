@@ -3,25 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors focus:outline-none",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        destructive: "border-transparent bg-destructive text-destructive-foreground",
-        outline: "text-foreground",
-        // Custom status variants
-        running: "border-blue-500/30 bg-blue-500/10 text-blue-400",
-        completed: "border-green-500/30 bg-green-500/10 text-green-400",
-        failed: "border-red-500/30 bg-red-500/10 text-red-400",
-        retrying: "border-orange-500/30 bg-orange-500/10 text-orange-400",
-        // Custom type variants
-        llm: "border-blue-500/30 bg-blue-500/10 text-blue-400",
-        tool: "border-purple-500/30 bg-purple-500/10 text-purple-400",
-        plan: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-        final: "border-green-500/30 bg-green-500/10 text-green-400",
-        error: "border-red-500/30 bg-red-500/10 text-red-400",
+        default: "bg-secondary text-secondary-foreground",
+        secondary: "bg-secondary text-secondary-foreground",
+        destructive: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+        outline: "border text-muted-foreground",
+        running: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
+        completed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+        failed: "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
+        retrying: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+        llm: "bg-secondary text-secondary-foreground",
+        tool: "bg-secondary text-secondary-foreground",
+        plan: "bg-secondary text-secondary-foreground",
+        final: "bg-secondary text-secondary-foreground",
+        error: "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
       },
     },
     defaultVariants: {

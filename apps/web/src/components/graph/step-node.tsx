@@ -2,92 +2,70 @@
 
 import React, { memo } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
-import { Badge } from "@/components/ui/badge";
 import { cn, formatDuration, formatTokens } from "@/lib/utils";
 import type { Step, StepType, StepStatus } from "@/types";
 
-const TYPE_BORDER: Record<StepType, string> = {
-  llm: "border-l-blue-500",
-  tool: "border-l-purple-500",
-  plan: "border-l-amber-500",
-  final: "border-l-green-500",
-  error: "border-l-red-500",
+const TYPE_COLORS: Record<StepType, { dot: string; border: string }> = {
+  llm: { dot: "bg-[hsl(187,100%,50%)]", border: "border-[hsl(187,100%,50%)]/30" },
+  tool: { dot: "bg-[hsl(262,83%,68%)]", border: "border-[hsl(262,83%,68%)]/30" },
+  plan: { dot: "bg-[hsl(45,93%,58%)]", border: "border-[hsl(45,93%,58%)]/30" },
+  final: { dot: "bg-[hsl(142,71%,55%)]", border: "border-[hsl(142,71%,55%)]/30" },
+  error: { dot: "bg-red-500", border: "border-red-500/30" },
 };
 
-const STATUS_RING: Record<StepStatus, string> = {
-  running: "ring-2 ring-blue-500/40",
-  completed: "",
-  failed: "ring-2 ring-red-500/40",
-  retrying: "ring-2 ring-orange-500/40",
-};
-
-const TYPE_ICON: Record<StepType, string> = {
-  llm: "🧠",
-  tool: "🔧",
-  plan: "📋",
-  final: "✅",
-  error: "❌",
+const STATUS_DOT: Record<StepStatus, string> = {
+  running: "animate-pulse bg-blue-400",
+  completed: "bg-emerald-400",
+  failed: "bg-red-400",
+  retrying: "animate-pulse bg-amber-400",
 };
 
 function StepNodeComponent({ data, selected }: NodeProps<Step>) {
   const step = data;
   const totalTokens = step.tokens_prompt + step.tokens_completion;
+  const colors = TYPE_COLORS[step.type] || { dot: "bg-gray-400", border: "border-gray-500/30" };
 
   return (
     <div
       className={cn(
-        "node-animate-in rounded-lg border-l-4 border bg-card shadow-md transition-all duration-200 cursor-pointer min-w-[240px]",
-        TYPE_BORDER[step.type] || "border-l-gray-500",
-        STATUS_RING[step.status] || "",
-        selected && "ring-2 ring-primary",
-        "hover:shadow-lg hover:scale-[1.02]"
+        "node-animate-in rounded-lg border bg-card cursor-pointer min-w-[240px] transition-all",
+        colors.border,
+        selected && "ring-1 ring-[hsl(var(--primary))] border-[hsl(var(--primary))]/50",
+        "hover:border-[hsl(var(--primary))]/40"
       )}
     >
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-muted-foreground !w-2 !h-2 !border-0"
+        className="!bg-[hsl(var(--primary))] !w-2 !h-2 !border-0 !opacity-50"
       />
 
-      <div className="px-3 py-2.5">
-        {/* Header: type icon + name */}
-        <div className="flex items-center gap-2">
-          <span className="text-base">{TYPE_ICON[step.type] || "📌"}</span>
-          <span className="text-sm font-semibold truncate max-w-[170px]">
-            {step.name}
-          </span>
+      <div className="px-3.5 py-2.5">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={cn("inline-block h-2.5 w-2.5 rounded-full shrink-0", colors.dot)} />
+            <span className="text-xs font-medium truncate">{step.name}</span>
+          </div>
+          <span className={cn("inline-block h-1.5 w-1.5 rounded-full shrink-0", STATUS_DOT[step.status])} />
         </div>
 
-        {/* Badges row */}
-        <div className="flex items-center gap-1.5 mt-1.5">
-          <Badge
-            variant={step.type as "llm" | "tool" | "plan" | "final" | "error"}
-            className="text-[10px] px-1.5 py-0"
-          >
-            {step.type}
-          </Badge>
-          <Badge
-            variant={step.status as "running" | "completed" | "failed" | "retrying"}
-            className={cn(
-              "text-[10px] px-1.5 py-0",
-              step.status === "running" && "animate-pulse"
-            )}
-          >
-            {step.status}
-          </Badge>
-        </div>
-
-        {/* Metrics row */}
-        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+        {/* Meta row */}
+        <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-foreground">
+          <span className="uppercase text-[10px] font-medium text-[hsl(var(--primary))]/70">{step.type}</span>
+          <span className="text-border">|</span>
+          <span>{step.status}</span>
           {step.duration_ms > 0 && (
-            <span>{formatDuration(step.duration_ms)}</span>
+            <>
+              <span className="text-border">|</span>
+              <span>{formatDuration(step.duration_ms)}</span>
+            </>
           )}
-          {totalTokens > 0 && <span>{formatTokens(totalTokens)} tok</span>}
-          {step.status === "running" && (
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-              processing
-            </span>
+          {totalTokens > 0 && (
+            <>
+              <span className="text-border">|</span>
+              <span>{formatTokens(totalTokens)} tok</span>
+            </>
           )}
         </div>
       </div>
@@ -95,7 +73,7 @@ function StepNodeComponent({ data, selected }: NodeProps<Step>) {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-muted-foreground !w-2 !h-2 !border-0"
+        className="!bg-[hsl(var(--primary))] !w-2 !h-2 !border-0 !opacity-50"
       />
     </div>
   );

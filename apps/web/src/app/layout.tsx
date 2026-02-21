@@ -18,7 +18,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="flex h-screen overflow-hidden">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );

@@ -10,6 +10,7 @@ export function useSteps(runId: string | undefined) {
     queryKey: ["steps", runId],
     queryFn: () => getRunSteps(runId!),
     enabled: !!runId,
+    refetchInterval: 2000,
   });
 }
 
