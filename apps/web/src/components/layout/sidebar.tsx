@@ -1,0 +1,186 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import {
+  Activity,
+  ChevronDown,
+  Circle,
+  Play,
+  Loader2,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { useRuns, useScenarios, useCreateRun } from "@/hooks/use-runs";
+import { cn, shortId, formatTimestamp } from "@/lib/utils";
+import type { Run, RunStatus } from "@/types";
+
+const STATUS_DOT: Record<RunStatus, string> = {
+  running: "text-blue-400 animate-pulse",
+  completed: "text-green-400",
+  failed: "text-red-400",
+};
+
+interface SidebarProps {
+  selectedRunId?: string;
+}
+
+export function Sidebar({ selectedRunId }: SidebarProps) {
+  const router = useRouter();
+  const { data: runs, isLoading: runsLoading } = useRuns();
+  const { data: scenariosData } = useScenarios();
+  const createRun = useCreateRun();
+
+  const scenarios = scenariosData?.scenarios ?? [];
+
+  const handleStartDemo = async (scenarioId: string) => {
+    try {
+      const run = await createRun.mutateAsync({
+        system_type: "mock",
+        scenario: scenarioId,
+      });
+      router.push(`/runs/${run.run_id}`);
+    } catch (e) {
+      console.error("Failed to create run:", e);
+    }
+  };
+
+  return (
+    <div className="flex h-full w-72 flex-col border-r bg-card">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <Activity className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight">UAOP</h1>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Observability
+            </p>
+          </div>
+        </div>
+        <ThemeToggle />
+      </div>
+
+      <Separator />
+
+      {/* Start Demo Button */}
+      <div className="px-3 py-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              className="w-full justify-between"
+              variant="outline"
+              disabled={createRun.isPending}
+            >
+              {createRun.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <span className="flex items-center gap-2">
+                    <Play className="h-4 w-4" />
+                    Start Demo Run
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-64" align="start">
+            <DropdownMenuLabel>Choose a scenario</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {scenarios.map((s) => (
+              <DropdownMenuItem
+                key={s.id}
+                onClick={() => handleStartDemo(s.id)}
+                className="cursor-pointer"
+              >
+                <span className="truncate text-sm">{s.label}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <Separator />
+
+      {/* Recent Runs */}
+      <div className="px-4 py-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Recent Runs
+        </h2>
+      </div>
+
+      <ScrollArea className="flex-1 px-2">
+        {runsLoading ? (
+          <div className="space-y-2 px-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-14 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : !runs || runs.length === 0 ? (
+          <div className="px-4 py-8 text-center">
+            <Activity className="mx-auto h-8 w-8 text-muted-foreground/40" />
+            <p className="mt-2 text-sm text-muted-foreground">No runs yet</p>
+            <p className="text-xs text-muted-foreground/60">
+              Start a demo run above
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-1 pb-4">
+            {runs.map((run: Run) => (
+              <button
+                key={run.run_id}
+                onClick={() => router.push(`/runs/${run.run_id}`)}
+                className={cn(
+                  "flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent",
+                  selectedRunId === run.run_id && "bg-accent"
+                )}
+              >
+                <Circle
+                  className={cn("mt-0.5 h-3 w-3 fill-current", STATUS_DOT[run.status])}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium truncate">
+                      {shortId(run.run_id)}
+                    </span>
+                    <Badge
+                      variant={run.status as "running" | "completed" | "failed"}
+                      className="text-[10px] px-1.5 py-0"
+                    >
+                      {run.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                      {run.system_type}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatTimestamp(run.created_at)}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
